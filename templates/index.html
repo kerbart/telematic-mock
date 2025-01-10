@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vehicle Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    #dashboard {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      max-width: 1200px;
+      justify-content: center;
+    }
+    .vehicle-card {
+      flex: 1 1 calc(20% - 15px); /* Adjust size: 20% width minus gap */
+      max-width: 220px; /* Ensure the width doesn't get too large */
+      background: white;
+      border: 2px solid #ddd;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .vehicle-card h3 {
+      margin: 0;
+      font-size: 18px;
+      color: #333;
+    }
+    .vehicle-card .info {
+      font-size: 14px;
+      color: #666;
+    }
+    .missing {
+      color: red;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div id="dashboard"></div>
+
+  <script>
+    const API_BASE_URL = "http://localhost:5008/vehicle";
+    const dashboard = document.getElementById("dashboard");
+
+    // Create dashboard layout for 10 vehicles
+    const vehicles = [];
+    for (let i = 1; i <= 10; i++) {
+      const vehicleId = `vehicle-${String(i).padStart(2, "0")}`;
+      vehicles.push(vehicleId);
+
+      const card = document.createElement("div");
+      card.className = "vehicle-card";
+      card.id = `card-${vehicleId}`;
+      card.innerHTML = `
+        <h3>${vehicleId}</h3>
+        <div class="info" id="info-${vehicleId}">
+          <p>Type: <span class="type">--</span></p>
+          <p>Speed: <span class="speed">--</span> km/h</p>
+          <p>Fuel/Battery: <span class="fuel-level">--</span></p>
+          <p>Location: <span class="location">Lat: --, Lon: --</span></p>
+          <p>Alerts: <span class="alerts">--</span></p>
+        </div>
+      `;
+      dashboard.appendChild(card);
+    }
+
+
+    async function updateVehicleData(vehicleId) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/${vehicleId}`);
+            if (!response.ok) {
+            throw new Error(`Failed to fetch data for ${vehicleId}`);
+            }
+            const data = await response.json();
+            const info = document.getElementById(`info-${vehicleId}`);
+
+            if (info) {
+            const type = data.type || '<span class="missing">Unknown</span>';
+            
+            const speed = data.location?.speed !== null && !isNaN(data.location?.speed)
+                ? parseFloat(data.location.speed).toFixed(2)
+                : '<span class="missing">Missing</span>';
+            
+            const fuelOrBattery = data.engine?.fuel_level !== null && !isNaN(data.engine?.fuel_level)
+                ? `${parseFloat(data.engine.fuel_level).toFixed(2)}%`
+                : data.engine?.battery_level !== null && !isNaN(data.engine?.battery_level)
+                ? `${parseFloat(data.engine.battery_level).toFixed(2)}%`
+                : '<span class="missing">Missing</span>';
+            
+            const latitude = data.location?.latitude !== null && !isNaN(data.location?.latitude)
+                ? parseFloat(data.location.latitude).toFixed(2)
+                : '--';
+            
+            const longitude = data.location?.longitude !== null && !isNaN(data.location?.longitude)
+                ? parseFloat(data.location.longitude).toFixed(2)
+                : '--';
+            
+            const location = data.location
+                ? `Lat: ${latitude}, Lon: ${longitude}`
+                : '<span class="missing">Missing</span>';
+            
+            const alerts = data.alerts?.length > 0
+                ? data.alerts.map(alert => alert.type).join(", ")
+                : "None";
+
+            info.innerHTML = `
+                <p>Type: <span class="type">${type}</span></p>
+                <p>Speed: <span class="speed">${speed}</span> km/h</p>
+                <p>Fuel/Battery: <span class="fuel-level">${fuelOrBattery}</span></p>
+                <p>Location: <span class="location">${location}</span></p>
+                <p>Alerts: <span class="alerts">${alerts}</span></p>
+            `;
+            }
+        } catch (error) {
+            console.error(`Error updating data for ${vehicleId}:`, error);
+        }
+    }
+
+
+
+    // Periodically update data for all vehicles
+    function updateAllVehicles() {
+      vehicles.forEach(vehicleId => {
+        updateVehicleData(vehicleId);
+      });
+    }
+
+    // Update data every 3 seconds
+    setInterval(updateAllVehicles, 3000);
+
+    // Initial update
+    updateAllVehicles();
+  </script>
+</body>
+</html>
