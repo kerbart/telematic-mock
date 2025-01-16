@@ -36,6 +36,15 @@ python telematic-generator-mqtt.py
 mosquitto_sub -h localhost -t telematics/data | jq
 ```
 
+## mini Rest API
+
+```
+http://localhost:9000/vehicle/vehicle-03
+```
+
+choose vehicule from vehicle-01 to vehicle-10
+
+
 ## mini app to display vehicles
 
 ```
